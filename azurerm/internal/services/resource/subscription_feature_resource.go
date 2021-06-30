@@ -24,11 +24,11 @@ const (
 	Unregistered  = "Unregistered"
 )
 
-func resourceFeature() *pluginsdk.Resource {
+func resourceSubscriptionFeature() *pluginsdk.Resource {
 	return &pluginsdk.Resource{
-		Create: resourceFeatureCreate,
-		Read:   resourceFeatureRead,
-		Delete: resourceFeatureDelete,
+		Create: resourceSubscriptionFeatureCreate,
+		Read:   resourceSubscriptionFeatureRead,
+		Delete: resourceSubscriptionFeatureDelete,
 		Importer: pluginsdk.ImporterValidatingResourceId(func(id string) error {
 			_, err := parse.FeatureID(id)
 			return err
@@ -59,7 +59,7 @@ func resourceFeature() *pluginsdk.Resource {
 	}
 }
 
-func resourceFeatureCreate(d *pluginsdk.ResourceData, meta interface{}) error {
+func resourceSubscriptionFeatureCreate(d *pluginsdk.ResourceData, meta interface{}) error {
 	subscriptionId := meta.(*clients.Client).Account.SubscriptionId
 	client := meta.(*clients.Client).Resource.FeaturesClient
 	ctx, cancel := timeouts.ForCreateUpdate(meta.(*clients.Client).StopContext, d)
@@ -112,10 +112,10 @@ func resourceFeatureCreate(d *pluginsdk.ResourceData, meta interface{}) error {
 
 	d.SetId(id.ID())
 
-	return resourceFeatureRead(d, meta)
+	return resourceSubscriptionFeatureRead(d, meta)
 }
 
-func resourceFeatureRead(d *pluginsdk.ResourceData, meta interface{}) error {
+func resourceSubscriptionFeatureRead(d *pluginsdk.ResourceData, meta interface{}) error {
 	client := meta.(*clients.Client).Resource.FeaturesClient
 	ctx, cancel := timeouts.ForRead(meta.(*clients.Client).StopContext, d)
 	defer cancel()
@@ -143,7 +143,7 @@ func resourceFeatureRead(d *pluginsdk.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceFeatureDelete(d *pluginsdk.ResourceData, meta interface{}) error {
+func resourceSubscriptionFeatureDelete(d *pluginsdk.ResourceData, meta interface{}) error {
 	client := meta.(*clients.Client).Resource.FeaturesClient
 	ctx, cancel := timeouts.ForDelete(meta.(*clients.Client).StopContext, d)
 	defer cancel()

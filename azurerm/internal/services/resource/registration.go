@@ -36,7 +36,7 @@ func (r Registration) SupportedDataSources() map[string]*pluginsdk.Resource {
 // SupportedResources returns the supported Resources supported by this Service
 func (r Registration) SupportedResources() map[string]*pluginsdk.Resource {
 	return map[string]*pluginsdk.Resource{
-		"azurerm_subscription_feature":                 resourceFeature(),
+		"azurerm_subscription_feature":                 resourceSubscriptionFeature(),
 		"azurerm_management_lock":                      resourceManagementLock(),
 		"azurerm_management_group_template_deployment": managementGroupTemplateDeploymentResource(),
 		"azurerm_resource_group":                       resourceResourceGroup(),

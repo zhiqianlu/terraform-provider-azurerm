@@ -14,12 +14,12 @@ import (
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
 )
 
-type FeatureResource struct {
+type SubscriptionFeatureResource struct {
 }
 
-func TestAccFeatureResource_basic(t *testing.T) {
+func TestAccSubscriptionFeatureResource_basic(t *testing.T) {
 	data := acceptance.BuildTestData(t, "azurerm_subscription_feature", "test")
-	r := FeatureResource{}
+	r := SubscriptionFeatureResource{}
 
 	data.DataSourceTest(t, []acceptance.TestStep{
 		{
@@ -31,9 +31,9 @@ func TestAccFeatureResource_basic(t *testing.T) {
 	})
 }
 
-func TestAccFeatureResource_requiresImport(t *testing.T) {
+func TestAccSubscriptionFeatureResource_requiresImport(t *testing.T) {
 	data := acceptance.BuildTestData(t, "azurerm_subscription_feature", "test")
-	r := FeatureResource{}
+	r := SubscriptionFeatureResource{}
 	data.ResourceTest(t, r, []acceptance.TestStep{
 		{
 			Config: r.requiresImportBasic(data),
@@ -45,7 +45,7 @@ func TestAccFeatureResource_requiresImport(t *testing.T) {
 	})
 }
 
-func (r FeatureResource) Exists(ctx context.Context, client *clients.Client, state *pluginsdk.InstanceState) (*bool, error) {
+func (r SubscriptionFeatureResource) Exists(ctx context.Context, client *clients.Client, state *pluginsdk.InstanceState) (*bool, error) {
 	id, err := parse.FeatureID(state.ID)
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func (r FeatureResource) Exists(ctx context.Context, client *clients.Client, sta
 	return utils.Bool(true), nil
 }
 
-func (r FeatureResource) basic(data acceptance.TestData) string {
+func (r SubscriptionFeatureResource) basic(data acceptance.TestData) string {
 	return fmt.Sprintf(`
 provider "azurerm" {
   features {}
@@ -78,7 +78,7 @@ resource "azurerm_subscription_feature" "test" {
 `, data.Client().SubscriptionIDAlt)
 }
 
-func (r FeatureResource) requiresImportBasic(data acceptance.TestData) string {
+func (r SubscriptionFeatureResource) requiresImportBasic(data acceptance.TestData) string {
 	return fmt.Sprintf(`
 provider "azurerm" {
   features {}
@@ -92,7 +92,7 @@ resource "azurerm_subscription_feature" "test" {
 `, data.Client().SubscriptionIDAlt)
 }
 
-func (r FeatureResource) requiresImport(data acceptance.TestData) string {
+func (r SubscriptionFeatureResource) requiresImport(data acceptance.TestData) string {
 	config := r.requiresImportBasic(data)
 	return fmt.Sprintf(`
 %s
