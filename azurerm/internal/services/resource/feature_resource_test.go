@@ -18,7 +18,9 @@ type FeatureResource struct {
 }
 
 func TestAccFeatureResource_basic(t *testing.T) {
-	t.Skip("acceptance test doesn't support having features toggled currently")
+	if true {
+		t.Skip("Skipping due to acceptance test doesn't support having features toggled currently")
+	}
 	data := acceptance.BuildTestData(t, "azurerm_feature", "test")
 	r := FeatureResource{}
 
@@ -33,7 +35,9 @@ func TestAccFeatureResource_basic(t *testing.T) {
 }
 
 func TestAccFeatureResource_requiresImport(t *testing.T) {
-	t.Skip("acceptance test doesn't support having features toggled currently")
+	if true {
+		t.Skip("Skipping due to acceptance test doesn't support having features toggled currently")
+	}
 	data := acceptance.BuildTestData(t, "azurerm_feature", "test")
 	r := FeatureResource{}
 	data.ResourceTest(t, r, []acceptance.TestStep{
