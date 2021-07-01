@@ -1,19 +1,19 @@
 ---
 subcategory: "Base"
 layout: "azurerm"
-page_title: "Azure Resource Manager: azurerm_feature"
+page_title: "Azure Resource Manager: azurerm_subscription_feature"
 description: |-
   Manages a Feature.
 ---
 
-# azurerm_feature
+# azurerm_subscription_feature
 
 Register and unregister a preview feature for the subscription. Features which `approvalType` is `AutoApproval` can be managed by terraform. 
 
 ## Example Usage
 
 ```hcl
-resource "azurerm_feature" "example" {
+resource "azurerm_subscription_feature" "example" {
   name               = "AutoApproveFeature"
   provider_namespace = "Microsoft.CognitiveServices"
 }
@@ -47,5 +47,5 @@ The `timeouts` block allows you to specify [timeouts](https://www.terraform.io/d
 Features can be imported using the `resource id`, e.g.
 
 ```shell
-terraform import azurerm_feature.example /subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Features/providers/provider1/features/Feature1
+terraform import azurerm_subscription_feature.example /subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Features/providers/provider1/features/Feature1
 ```

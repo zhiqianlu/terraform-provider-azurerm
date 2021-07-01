@@ -21,12 +21,12 @@ func TestAccFeatureResource_basic(t *testing.T) {
 	if true {
 		t.Skip("Skipping due to acceptance test doesn't support having features toggled currently")
 	}
-	data := acceptance.BuildTestData(t, "azurerm_feature", "test")
+	data := acceptance.BuildTestData(t, "azurerm_subscription_feature", "test")
 	r := FeatureResource{}
 
 	data.DataSourceTest(t, []acceptance.TestStep{
 		{
-			Config: r.basic(),
+			Config: r.basic(data),
 			Check: acceptance.ComposeTestCheckFunc(
 				check.That(data.ResourceName).ExistsInAzure(r),
 			),
@@ -38,11 +38,11 @@ func TestAccFeatureResource_requiresImport(t *testing.T) {
 	if true {
 		t.Skip("Skipping due to acceptance test doesn't support having features toggled currently")
 	}
-	data := acceptance.BuildTestData(t, "azurerm_feature", "test")
+	data := acceptance.BuildTestData(t, "azurerm_subscription_feature", "test")
 	r := FeatureResource{}
 	data.ResourceTest(t, r, []acceptance.TestStep{
 		{
-			Config: r.requiresImportBasic(),
+			Config: r.requiresImportBasic(data),
 			Check: acceptance.ComposeTestCheckFunc(
 				check.That(data.ResourceName).ExistsInAzure(r),
 			),
@@ -71,40 +71,41 @@ func (r FeatureResource) Exists(ctx context.Context, client *clients.Client, sta
 	return utils.Bool(true), nil
 }
 
-func (r FeatureResource) basic() string {
-	return `
+func (r FeatureResource) basic(data acceptance.TestData) string {
+	return fmt.Sprintf(`
 provider "azurerm" {
   features {}
+  subscription_id = "%s"
 }
-
-resource "azurerm_feature" "test" {
+resource "azurerm_subscription_feature" "test" {
   name               = "AutoApproveFeature"
   provider_namespace = "Microsoft.CognitiveServices"
 }
-`
+`, data.Client().SubscriptionIDAlt)
 }
 
-func (r FeatureResource) requiresImportBasic() string {
-	return `
+func (r FeatureResource) requiresImportBasic(data acceptance.TestData) string {
+	return fmt.Sprintf(`
 provider "azurerm" {
   features {}
+  subscription_id = "%s"
 }
 
-resource "azurerm_feature" "test" {
+resource "azurerm_subscription_feature" "test" {
   name               = "AllowManagedDisksReplaceOSDisk"
   provider_namespace = "Microsoft.Compute"
 }
-`
+`, data.Client().SubscriptionIDAlt)
 }
 
 func (r FeatureResource) requiresImport(data acceptance.TestData) string {
-	config := r.requiresImportBasic()
+	config := r.requiresImportBasic(data)
 	return fmt.Sprintf(`
 %s
 
-resource "azurerm_feature" "import" {
-  name               = azurerm_feature.test.name
-  provider_namespace = azurerm_feature.test.provider_namespace
+resource "azurerm_subscription_feature" "import" {
+  name               = azurerm_subscription_feature.test.name
+  provider_namespace = azurerm_subscription_feature.test.provider_namespace
 }
 `, config)
 }

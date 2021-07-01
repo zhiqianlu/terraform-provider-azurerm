@@ -79,7 +79,7 @@ func resourceFeatureCreate(d *pluginsdk.ResourceData, meta interface{}) error {
 			return fmt.Errorf("feature (%q) which requires manual approval should not be managed by terraform", id)
 		}
 		if !strings.EqualFold(*existing.Properties.State, NotRegistered) && !strings.EqualFold(*existing.Properties.State, Unregistered) {
-			return tf.ImportAsExistsError("azurerm_feature", id.ID())
+			return tf.ImportAsExistsError("azurerm_subscription_feature", id.ID())
 		}
 	}
 
