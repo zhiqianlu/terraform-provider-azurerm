@@ -26,7 +26,7 @@ func (id FeatureId) String() string {
 		fmt.Sprintf("Name %q", id.Name),
 	}
 	segmentsStr := strings.Join(segments, " / ")
-	return fmt.Sprintf("%s: (%s)", "Feature", segmentsStr)
+	return fmt.Sprintf("Feature: (%s)", segmentsStr)
 }
 
 func (id FeatureId) ID() string {

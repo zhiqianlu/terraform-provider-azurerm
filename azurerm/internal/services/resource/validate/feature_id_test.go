@@ -1,7 +1,5 @@
 package validate
 
-// NOTE: this file is generated via 'go:generate' - manual changes will be overwritten
-
 import "testing"
 
 func TestFeatureID(t *testing.T) {
@@ -30,25 +28,25 @@ func TestFeatureID(t *testing.T) {
 
 		{
 			// missing Name
-			Input: "/subscriptions/12345678-1234-9876-4563-123456789012/providers/Microsoft.Features/providers/provider1/",
+			Input: "/subscriptions/12345678-1234-9876-4563-123456789012/providers/Microsoft.Features/providers/Microsoft.SomeAzureService/",
 			Valid: false,
 		},
 
 		{
 			// missing value for Name
-			Input: "/subscriptions/12345678-1234-9876-4563-123456789012/providers/Microsoft.Features/providers/provider1/features/",
+			Input: "/subscriptions/12345678-1234-9876-4563-123456789012/providers/Microsoft.Features/providers/Microsoft.SomeAzureService/features/",
 			Valid: false,
 		},
 
 		{
 			// valid
-			Input: "/subscriptions/12345678-1234-9876-4563-123456789012/providers/Microsoft.Features/providers/provider1/features/Feature1",
+			Input: "/subscriptions/12345678-1234-9876-4563-123456789012/providers/Microsoft.Features/providers/Microsoft.SomeAzureService/features/Feature1",
 			Valid: true,
 		},
 
 		{
 			// upper-cased
-			Input: "/SUBSCRIPTIONS/12345678-1234-9876-4563-123456789012/PROVIDERS/MICROSOFT.FEATURES/PROVIDERS/PROVIDER1/FEATURES/FEATURE1",
+			Input: "/SUBSCRIPTIONS/12345678-1234-9876-4563-123456789012/PROVIDERS/MICROSOFT.FEATURES/PROVIDERS/MICROSOFT.SOMEAZURESERVICE/FEATURES/FEATURE1",
 			Valid: false,
 		},
 	}

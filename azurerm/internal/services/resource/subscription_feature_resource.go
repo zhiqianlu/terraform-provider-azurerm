@@ -65,9 +65,7 @@ func resourceSubscriptionFeatureCreate(d *pluginsdk.ResourceData, meta interface
 	ctx, cancel := timeouts.ForCreateUpdate(meta.(*clients.Client).StopContext, d)
 	defer cancel()
 
-	name := d.Get("name").(string)
-	providerNamespace := d.Get("provider_namespace").(string)
-	id := parse.NewFeatureID(subscriptionId, providerNamespace, name)
+	id := parse.NewFeatureID(subscriptionId, d.Get("provider_namespace").(string), d.Get("name").(string))
 
 	existing, err := client.Get(ctx, id.ProviderNamespace, id.Name)
 	if err != nil {

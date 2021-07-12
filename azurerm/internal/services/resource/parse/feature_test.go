@@ -43,19 +43,19 @@ func TestFeatureID(t *testing.T) {
 
 		{
 			// missing Name
-			Input: "/subscriptions/12345678-1234-9876-4563-123456789012/providers/Microsoft.Features/providers/provider1/",
+			Input: "/subscriptions/12345678-1234-9876-4563-123456789012/providers/Microsoft.Features/providers/Microsoft.SomeAzureService/",
 			Error: true,
 		},
 
 		{
 			// missing value for Name
-			Input: "/subscriptions/12345678-1234-9876-4563-123456789012/providers/Microsoft.Features/providers/provider1/features/",
+			Input: "/subscriptions/12345678-1234-9876-4563-123456789012/providers/Microsoft.Features/providers/Microsoft.SomeAzureService/features/",
 			Error: true,
 		},
 
 		{
 			// valid
-			Input: "/subscriptions/12345678-1234-9876-4563-123456789012/providers/Microsoft.Features/providers/provider1/features/Feature1",
+			Input: "/subscriptions/12345678-1234-9876-4563-123456789012/providers/Microsoft.Features/providers/Microsoft.SomeAzureService/features/Feature1",
 			Expected: &FeatureId{
 				SubscriptionId:    "12345678-1234-9876-4563-123456789012",
 				ProviderNamespace: "provider1",
@@ -65,7 +65,7 @@ func TestFeatureID(t *testing.T) {
 
 		{
 			// upper-cased
-			Input: "/SUBSCRIPTIONS/12345678-1234-9876-4563-123456789012/PROVIDERS/MICROSOFT.FEATURES/PROVIDERS/PROVIDER1/FEATURES/FEATURE1",
+			Input: "/SUBSCRIPTIONS/12345678-1234-9876-4563-123456789012/PROVIDERS/MICROSOFT.FEATURES/PROVIDERS/MICROSOFT.SOMEAZURESERVICE/FEATURES/FEATURE1",
 			Error: true,
 		},
 	}
