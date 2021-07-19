@@ -129,10 +129,11 @@ func resourceSubscriptionFeatureRead(d *pluginsdk.ResourceData, meta interface{}
 	}
 	if resp.Properties != nil && resp.Properties.State != nil {
 		if strings.EqualFold(*resp.Properties.State, Pending) {
-			return fmt.Errorf("%s which requires manual approval can not be managed by terraform", id)
+			return fmt.Errorf("%s requires manual registration approval and can not be managed by terraform", id)
 		}
 		if !strings.EqualFold(*resp.Properties.State, Registered) {
-			return fmt.Errorf("%s is not registered", id)
+			d.SetId("")
+			return nil
 		}
 	}
 
@@ -153,12 +154,12 @@ func resourceSubscriptionFeatureDelete(d *pluginsdk.ResourceData, meta interface
 
 	resp, err := client.Unregister(ctx, id.ProviderNamespace, id.Name)
 	if err != nil {
-		return fmt.Errorf("error unregistering feature %q: %+v", id, err)
+		return fmt.Errorf("unregistering feature %q: %+v", id, err)
 	}
 
 	if resp.Properties != nil && resp.Properties.State != nil {
 		if strings.EqualFold(*resp.Properties.State, Pending) {
-			return fmt.Errorf("%s which requires manual approval can not be managed by terraform", id)
+			return fmt.Errorf("%s requires manual registration approval and can not be managed by terraform", id)
 		}
 	}
 
@@ -175,7 +176,7 @@ func resourceSubscriptionFeatureDelete(d *pluginsdk.ResourceData, meta interface
 	}
 
 	if _, err = stateConf.WaitForStateContext(ctx); err != nil {
-		return fmt.Errorf("waiting for %s registering to be completed: %+v", id, err)
+		return fmt.Errorf("waiting for %s to be complete unregistering: %+v", id, err)
 	}
 
 	return nil
