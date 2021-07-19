@@ -74,7 +74,7 @@ func resourceSubscriptionFeatureCreate(d *pluginsdk.ResourceData, meta interface
 
 	if existing.Properties != nil && existing.Properties.State != nil {
 		if strings.EqualFold(*existing.Properties.State, Pending) {
-			return fmt.Errorf("feature (%q) which requires manual approval should not be managed by terraform", id)
+			return fmt.Errorf("%s which requires manual approval should not be managed by terraform", id)
 		}
 		if !strings.EqualFold(*existing.Properties.State, NotRegistered) && !strings.EqualFold(*existing.Properties.State, Unregistered) {
 			return tf.ImportAsExistsError("azurerm_subscription_feature", id.ID())
@@ -88,7 +88,7 @@ func resourceSubscriptionFeatureCreate(d *pluginsdk.ResourceData, meta interface
 
 	if resp.Properties != nil && resp.Properties.State != nil {
 		if strings.EqualFold(*resp.Properties.State, Pending) {
-			return fmt.Errorf("feature (%q) which requires manual approval can not be managed by terraform", id)
+			return fmt.Errorf("%s which requires manual approval can not be managed by terraform", id)
 		}
 	}
 
@@ -105,7 +105,7 @@ func resourceSubscriptionFeatureCreate(d *pluginsdk.ResourceData, meta interface
 	}
 
 	if _, err = stateConf.WaitForStateContext(ctx); err != nil {
-		return fmt.Errorf("waiting for feature(%q) registering to be completed: %+v", id, err)
+		return fmt.Errorf("waiting for %s registering to be completed: %+v", id, err)
 	}
 
 	d.SetId(id.ID())
@@ -129,10 +129,10 @@ func resourceSubscriptionFeatureRead(d *pluginsdk.ResourceData, meta interface{}
 	}
 	if resp.Properties != nil && resp.Properties.State != nil {
 		if strings.EqualFold(*resp.Properties.State, Pending) {
-			return fmt.Errorf("feature (%q) which requires manual approval can not be managed by terraform", id)
+			return fmt.Errorf("%s which requires manual approval can not be managed by terraform", id)
 		}
 		if !strings.EqualFold(*resp.Properties.State, Registered) {
-			return fmt.Errorf("feature (%q) is not registered", id)
+			return fmt.Errorf("%s is not registered", id)
 		}
 	}
 
@@ -158,7 +158,7 @@ func resourceSubscriptionFeatureDelete(d *pluginsdk.ResourceData, meta interface
 
 	if resp.Properties != nil && resp.Properties.State != nil {
 		if strings.EqualFold(*resp.Properties.State, Pending) {
-			return fmt.Errorf("feature (%q) which requires manual approval can not be managed by terraform", id)
+			return fmt.Errorf("%s which requires manual approval can not be managed by terraform", id)
 		}
 	}
 
@@ -175,7 +175,7 @@ func resourceSubscriptionFeatureDelete(d *pluginsdk.ResourceData, meta interface
 	}
 
 	if _, err = stateConf.WaitForStateContext(ctx); err != nil {
-		return fmt.Errorf("waiting for feature(%q) registering to be completed: %+v", id, err)
+		return fmt.Errorf("waiting for %s registering to be completed: %+v", id, err)
 	}
 
 	return nil
@@ -185,10 +185,10 @@ func featureRegisteringStateRefreshFunc(ctx context.Context, client *features.Cl
 	return func() (interface{}, string, error) {
 		res, err := client.Get(ctx, id.ProviderNamespace, id.Name)
 		if err != nil {
-			return nil, "", fmt.Errorf("retrieving feature (%q): %+v", id, err)
+			return nil, "", fmt.Errorf("retrieving %s: %+v", id, err)
 		}
 		if res.Properties == nil || res.Properties.State == nil {
-			return nil, "", fmt.Errorf("error reading feature (%q) registering status: %+v", id, err)
+			return nil, "", fmt.Errorf("error reading %s registering status: %+v", id, err)
 		}
 
 		return res, *res.Properties.State, nil

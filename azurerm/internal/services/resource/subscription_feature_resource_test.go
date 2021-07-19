@@ -3,6 +3,7 @@ package resource_test
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -50,13 +51,14 @@ func (r SubscriptionFeatureResource) Exists(ctx context.Context, client *clients
 	if err != nil {
 		return nil, err
 	}
+	client.Resource.FeaturesClient.BaseClient.SubscriptionID = os.Getenv("ARM_SUBSCRIPTION_ID_ALT")
 	resp, err := client.Resource.FeaturesClient.Get(ctx, id.ProviderNamespace, id.Name)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving feature %q: %+v", id, err)
 	}
 	if resp.Properties != nil && resp.Properties.State != nil {
 		if strings.EqualFold(*resp.Properties.State, "Pending") {
-			return nil, fmt.Errorf("feature (%q) which requires manual approval can not be managed by terraform", id)
+			return nil, fmt.Errorf("%s which requires manual approval can not be managed by terraform", id)
 		}
 		if !strings.EqualFold(*resp.Properties.State, "Registered") {
 			return utils.Bool(false), nil
