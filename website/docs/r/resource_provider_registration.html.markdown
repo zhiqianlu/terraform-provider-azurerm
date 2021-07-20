@@ -19,6 +19,9 @@ Manages the registration of a Resource Provider - which allows access to the API
 ```hcl
 resource "azurerm_resource_provider_registration" "example" {
   name = "Microsoft.PolicyInsights"
+  feature {
+    name = "AKS-DataPlaneAutoApprove"
+  }
 }
 ```
 
@@ -27,6 +30,14 @@ resource "azurerm_resource_provider_registration" "example" {
 The following arguments are supported:
 
 * `name` - (Required) The namespace of the Resource Provider which should be registered. Changing this forces a new resource to be created.
+
+* `feature` - (Optional) A `feature` block as defined below. Use this argument to register and unregister a preview feature for the subscription. Features which `approvalType` is `AutoApproval` can be managed by terraform.  [More information can be found in this document](https://docs.microsoft.com/en-us/rest/api/resources/features).
+
+---
+
+A `feature` block supports the following:
+
+* `name` - (Required) Specifies the name of the feature to register.
 
 ## Timeouts
 
