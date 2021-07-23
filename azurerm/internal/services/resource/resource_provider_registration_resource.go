@@ -206,11 +206,12 @@ func (r ResourceProviderRegistrationResource) Read() sdk.ResourceFunc {
 					return fmt.Errorf("retrieving features for Resource Provider %q: %+v", id.ResourceProvider, err)
 				}
 				if result.Properties != nil && result.Properties.State != nil {
-					if strings.EqualFold(*result.Properties.State, Registered) {
+					switch *result.Properties.State {
+					case Registered:
 						features = append(features, ResourceProviderRegistrationFeatureModel{Name: featureId.Name, Registered: true})
-					} else if strings.EqualFold(*result.Properties.State, Unregistered) {
+					case Unregistered:
 						features = append(features, ResourceProviderRegistrationFeatureModel{Name: featureId.Name, Registered: false})
-					} else {
+					default:
 						return fmt.Errorf("feature %s state is %s", featureId, *result.Properties.State)
 					}
 				}
