@@ -39,6 +39,8 @@ A `feature` block supports the following:
 
 * `name` - (Required) Specifies the name of the feature to register.
 
+* `registered` - (Required) A boolean value indicating whether the feature is registered.
+
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://www.terraform.io/docs/configuration/resources.html#timeouts) for certain actions:

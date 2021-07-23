@@ -54,7 +54,7 @@ func TestAccResourceProviderRegistration_feature(t *testing.T) {
 	r := ResourceProviderRegistrationResource{}
 	data.ResourceTest(t, r, []acceptance.TestStep{
 		{
-			Config: r.basic(data, "Microsoft.IoTCentral"),
+			Config: r.basic(data, "Microsoft.BlockchainTokens"),
 			Check: acceptance.ComposeTestCheckFunc(
 				check.That(data.ResourceName).ExistsInAzure(r),
 				check.That(data.ResourceName).Key("feature.#").HasValue("0"),
@@ -62,34 +62,23 @@ func TestAccResourceProviderRegistration_feature(t *testing.T) {
 		},
 		data.ImportStep(),
 		{
-			Config: r.feature(data, "Microsoft.IoTCentral", "scootaloo"),
+			Config: r.feature(data, "Microsoft.BlockchainTokens", "PrivatePreview", false),
 			Check: acceptance.ComposeTestCheckFunc(
 				check.That(data.ResourceName).ExistsInAzure(r),
-				check.That(data.ResourceName).Key("feature.#").HasValue("1"),
 			),
 		},
-		data.ImportStep(),
+		data.ImportStep("feature.#", "feature.0.name", "feature.0.registered", "feature.0.%"),
 		{
-			Config: r.multiFeatures(data, "Microsoft.IoTCentral", "scootaloo", "metering"),
+			Config: r.feature(data, "Microsoft.BlockchainTokens", "PrivatePreview", true),
 			Check: acceptance.ComposeTestCheckFunc(
 				check.That(data.ResourceName).ExistsInAzure(r),
-				check.That(data.ResourceName).Key("feature.#").HasValue("2"),
 			),
 		},
-		data.ImportStep(),
+		data.ImportStep("feature.#", "feature.0.name", "feature.0.registered", "feature.0.%"),
 		{
-			Config: r.feature(data, "Microsoft.IoTCentral", "metering"),
+			Config: r.basic(data, "Microsoft.BlockchainTokens"),
 			Check: acceptance.ComposeTestCheckFunc(
 				check.That(data.ResourceName).ExistsInAzure(r),
-				check.That(data.ResourceName).Key("feature.#").HasValue("1"),
-			),
-		},
-		data.ImportStep(),
-		{
-			Config: r.noFeatures(data, "Microsoft.IoTCentral"),
-			Check: acceptance.ComposeTestCheckFunc(
-				check.That(data.ResourceName).ExistsInAzure(r),
-				check.That(data.ResourceName).Key("feature.#").HasValue("0"),
 			),
 		},
 		data.ImportStep(),
@@ -136,22 +125,7 @@ resource "azurerm_resource_provider_registration" "import" {
 `, template)
 }
 
-func (ResourceProviderRegistrationResource) noFeatures(data acceptance.TestData, name string) string {
-	return fmt.Sprintf(`
-provider "azurerm" {
-  features {}
-  skip_provider_registration = true
-  subscription_id            = "%s"
-}
-
-resource "azurerm_resource_provider_registration" "test" {
-  name    = %q
-  feature = []
-}
-`, data.Client().SubscriptionIDAlt, name)
-}
-
-func (ResourceProviderRegistrationResource) feature(data acceptance.TestData, name string, feature string) string {
+func (ResourceProviderRegistrationResource) feature(data acceptance.TestData, name string, feature string, registered bool) string {
 	return fmt.Sprintf(`
 provider "azurerm" {
   features {}
@@ -162,28 +136,9 @@ provider "azurerm" {
 resource "azurerm_resource_provider_registration" "test" {
   name = %q
   feature {
-    name = %q
+    name       = %q
+    registered = %t
   }
 }
-`, data.Client().SubscriptionIDAlt, name, feature)
-}
-
-func (ResourceProviderRegistrationResource) multiFeatures(data acceptance.TestData, name string, feature1 string, feature2 string) string {
-	return fmt.Sprintf(`
-provider "azurerm" {
-  features {}
-  skip_provider_registration = true
-  subscription_id            = "%s"
-}
-
-resource "azurerm_resource_provider_registration" "test" {
-  name = %q
-  feature {
-    name = %q
-  }
-  feature {
-    name = %q
-  }
-}
-`, data.Client().SubscriptionIDAlt, name, feature1, feature2)
+`, data.Client().SubscriptionIDAlt, name, feature, registered)
 }

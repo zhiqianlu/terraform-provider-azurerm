@@ -10,7 +10,6 @@ import (
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
 	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2015-12-01/features"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/tf"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/clients"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/resourceproviders"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/sdk"
@@ -31,7 +30,8 @@ type ResourceProviderRegistrationModel struct {
 }
 
 type ResourceProviderRegistrationFeatureModel struct {
-	Name string `tfschema:"name"`
+	Name       string `tfschema:"name"`
+	Registered bool   `tfschema:"registered"`
 }
 
 const (
@@ -53,16 +53,19 @@ func (r ResourceProviderRegistrationResource) Arguments() map[string]*pluginsdk.
 		},
 
 		"feature": {
-			Type:       pluginsdk.TypeList,
-			Optional:   true,
-			Computed:   true,                           // TODO 3.0: make it only Optional
-			ConfigMode: pluginsdk.SchemaConfigModeAttr, // TODO -- remove in 3.0, because this property is optional and computed, it has to be declared as empty array to remove existed values
+			Type:     pluginsdk.TypeList,
+			Optional: true,
 			Elem: &pluginsdk.Resource{
 				Schema: map[string]*pluginsdk.Schema{
 					"name": {
 						Type:         pluginsdk.TypeString,
 						Required:     true,
 						ValidateFunc: validation.StringIsNotEmpty,
+					},
+
+					"registered": {
+						Type:     pluginsdk.TypeBool,
+						Required: true,
 					},
 				},
 			},
@@ -193,20 +196,23 @@ func (r ResourceProviderRegistrationResource) Read() sdk.ResourceFunc {
 				return metadata.MarkAsGone(id)
 			}
 
-			result, err := featureClient.ListComplete(ctx, id.ResourceProvider)
-			if err != nil {
-				return fmt.Errorf("retrieving features for Resource Provider %q: %+v", id.ResourceProvider, err)
-			}
+			featuresRaw := metadata.ResourceData.Get("feature").([]interface{})
 			features := make([]ResourceProviderRegistrationFeatureModel, 0)
-			for result.NotDone() {
-				value := result.Value()
-				if value.Properties != nil && value.Properties.State != nil && *value.Properties.State == Registered && value.Name != nil {
-					featureName := (*value.Name)[len(id.ResourceProvider)+1:]
-					features = append(features, ResourceProviderRegistrationFeatureModel{Name: featureName})
+			for _, v := range featuresRaw {
+				value := v.(map[string]interface{})
+				featureId := parse.NewFeatureID(id.SubscriptionId, id.ResourceProvider, value["name"].(string))
+				result, err := featureClient.Get(ctx, featureId.ProviderNamespace, featureId.Name)
+				if err != nil {
+					return fmt.Errorf("retrieving features for Resource Provider %q: %+v", id.ResourceProvider, err)
 				}
-
-				if err := result.NextWithContext(ctx); err != nil {
-					return err
+				if result.Properties != nil && result.Properties.State != nil {
+					if strings.EqualFold(*result.Properties.State, Registered) {
+						features = append(features, ResourceProviderRegistrationFeatureModel{Name: featureId.Name, Registered: true})
+					} else if strings.EqualFold(*result.Properties.State, Unregistered) {
+						features = append(features, ResourceProviderRegistrationFeatureModel{Name: featureId.Name, Registered: false})
+					} else {
+						return fmt.Errorf("feature %s state is %s", featureId, *result.Properties.State)
+					}
 				}
 			}
 
@@ -351,33 +357,36 @@ func (r ResourceProviderRegistrationResource) unregisterRefreshFunc(ctx context.
 }
 
 func (r ResourceProviderRegistrationResource) applyFeatures(ctx context.Context, metadata sdk.ResourceMetaData, id parse.ResourceProviderId, oldFeatures []interface{}, newFeatures []interface{}) error {
-	createFeatures := make(map[string]bool)
 	for _, v := range newFeatures {
 		value := v.(map[string]interface{})
-		createFeatures[value["name"].(string)] = true
-	}
-	for _, v := range oldFeatures {
-		value := v.(map[string]interface{})
 		name := value["name"].(string)
-		if !createFeatures[name] {
-			log.Printf("[INFO] unregistering feature %q.", name)
+		if value["registered"].(bool) {
+			if err := r.registerFeature(ctx, metadata, parse.NewFeatureID(id.SubscriptionId, id.ResourceProvider, name)); err != nil {
+				return err
+			}
+		} else {
 			if err := r.unregisterFeature(ctx, metadata, parse.NewFeatureID(id.SubscriptionId, id.ResourceProvider, name)); err != nil {
 				return err
 			}
 		}
 	}
 
-	deleteFeatures := make(map[string]bool)
+	// unregister the features which block is removed now
+	unmanagedRegisteredFeatures := make(map[string]bool)
 	for _, v := range oldFeatures {
 		value := v.(map[string]interface{})
-		deleteFeatures[value["name"].(string)] = true
+		name := value["name"].(string)
+		unmanagedRegisteredFeatures[name] = value["registered"].(bool)
 	}
 	for _, v := range newFeatures {
 		value := v.(map[string]interface{})
 		name := value["name"].(string)
-		if !deleteFeatures[name] {
-			log.Printf("[INFO] registering feature %q.", name)
-			if err := r.registerFeature(ctx, metadata, parse.NewFeatureID(id.SubscriptionId, id.ResourceProvider, name)); err != nil {
+		unmanagedRegisteredFeatures[name] = false
+	}
+
+	for featureName, registered := range unmanagedRegisteredFeatures {
+		if registered {
+			if err := r.unregisterFeature(ctx, metadata, parse.NewFeatureID(id.SubscriptionId, id.ResourceProvider, featureName)); err != nil {
 				return err
 			}
 		}
@@ -396,11 +405,12 @@ func (r ResourceProviderRegistrationResource) registerFeature(ctx context.Contex
 		if strings.EqualFold(*existing.Properties.State, Pending) {
 			return fmt.Errorf("%s which requires manual approval should not be managed by terraform", id)
 		}
-		if !strings.EqualFold(*existing.Properties.State, NotRegistered) && !strings.EqualFold(*existing.Properties.State, Unregistered) {
-			return tf.ImportAsExistsError("azurerm_subscription_feature", id.ID())
+		if strings.EqualFold(*existing.Properties.State, Registered) {
+			return nil
 		}
 	}
 
+	log.Printf("[INFO] registering feature %q.", id)
 	resp, err := client.Register(ctx, id.ProviderNamespace, id.Name)
 	if err != nil {
 		return fmt.Errorf("error registering feature %q: %+v", id, err)
@@ -432,7 +442,21 @@ func (r ResourceProviderRegistrationResource) registerFeature(ctx context.Contex
 
 func (r ResourceProviderRegistrationResource) unregisterFeature(ctx context.Context, metadata sdk.ResourceMetaData, id parse.FeatureId) error {
 	client := metadata.Client.Resource.FeaturesClient
+	existing, err := client.Get(ctx, id.ProviderNamespace, id.Name)
+	if err != nil {
+		return fmt.Errorf("error checking for existing feature %q: %+v", id, err)
+	}
 
+	if existing.Properties != nil && existing.Properties.State != nil {
+		if strings.EqualFold(*existing.Properties.State, Pending) {
+			return fmt.Errorf("%s which requires manual approval should not be managed by terraform", id)
+		}
+		if strings.EqualFold(*existing.Properties.State, Unregistered) {
+			return nil
+		}
+	}
+
+	log.Printf("[INFO] unregistering feature %q.", id)
 	resp, err := client.Unregister(ctx, id.ProviderNamespace, id.Name)
 	if err != nil {
 		return fmt.Errorf("unregistering feature %q: %+v", id, err)
