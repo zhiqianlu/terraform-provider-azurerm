@@ -33,6 +33,8 @@ The following arguments are supported:
 
 * `feature` - (Optional) A `feature` block as defined below. Use this argument to register and unregister a preview feature for the subscription. Features which `approvalType` is `AutoApproval` can be managed by terraform.  [More information can be found in this document](https://docs.microsoft.com/en-us/rest/api/resources/features).
 
+~> **NOTE:** Features which aren't defined are ignored.
+
 ---
 
 A `feature` block supports the following:
