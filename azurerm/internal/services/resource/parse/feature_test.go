@@ -58,7 +58,7 @@ func TestFeatureID(t *testing.T) {
 			Input: "/subscriptions/12345678-1234-9876-4563-123456789012/providers/Microsoft.Features/providers/Microsoft.SomeAzureService/features/Feature1",
 			Expected: &FeatureId{
 				SubscriptionId:    "12345678-1234-9876-4563-123456789012",
-				ProviderNamespace: "provider1",
+				ProviderNamespace: "Microsoft.SomeAzureService",
 				Name:              "Feature1",
 			},
 		},
@@ -87,6 +87,9 @@ func TestFeatureID(t *testing.T) {
 
 		if actual.SubscriptionId != v.Expected.SubscriptionId {
 			t.Fatalf("Expected %q but got %q for SubscriptionId", v.Expected.SubscriptionId, actual.SubscriptionId)
+		}
+		if actual.ProviderNamespace != v.Expected.ProviderNamespace {
+			t.Fatalf("Expected %q but got %q for ProviderNamespace", v.Expected.ProviderNamespace, actual.ProviderNamespace)
 		}
 		if actual.Name != v.Expected.Name {
 			t.Fatalf("Expected %q but got %q for Name", v.Expected.Name, actual.Name)

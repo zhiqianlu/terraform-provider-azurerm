@@ -125,9 +125,9 @@ func (r ResourceProviderRegistrationResource) resourceCreateUpdate(ctx context.C
 		return fmt.Errorf("retrieving Resource Provider %q: `registrationState` was nil", resourceId.ResourceProvider)
 	}
 	if metadata.ResourceData.IsNewResource() {
-		if strings.EqualFold(*provider.RegistrationState, "Registered") {
-			return metadata.ResourceRequiresImport(r.ResourceType(), resourceId)
-		}
+		//if strings.EqualFold(*provider.RegistrationState, "Registered") {
+		//	return metadata.ResourceRequiresImport(r.ResourceType(), resourceId)
+		//}
 	} else {
 		if !strings.EqualFold(*provider.RegistrationState, "Registered") {
 			return fmt.Errorf("retrieving Resource Provider %q: `registrationState` was not `Registered`", resourceId.ResourceProvider)
@@ -196,30 +196,25 @@ func (r ResourceProviderRegistrationResource) Read() sdk.ResourceFunc {
 				return metadata.MarkAsGone(id)
 			}
 
-			featuresRaw := metadata.ResourceData.Get("feature").([]interface{})
-			features := make([]ResourceProviderRegistrationFeatureModel, 0)
-			for _, v := range featuresRaw {
-				value := v.(map[string]interface{})
-				featureId := parse.NewFeatureID(id.SubscriptionId, id.ResourceProvider, value["name"].(string))
-				result, err := featureClient.Get(ctx, featureId.ProviderNamespace, featureId.Name)
-				if err != nil {
-					return fmt.Errorf("retrieving features for Resource Provider %q: %+v", id.ResourceProvider, err)
-				}
-				if result.Properties != nil && result.Properties.State != nil {
-					switch *result.Properties.State {
-					case Registered:
-						features = append(features, ResourceProviderRegistrationFeatureModel{Name: featureId.Name, Registered: true})
-					case Unregistered:
-						features = append(features, ResourceProviderRegistrationFeatureModel{Name: featureId.Name, Registered: false})
-					default:
-						return fmt.Errorf("feature %s state is %s", featureId, *result.Properties.State)
-					}
-				}
+			// NOTE: this can be simplified in the future
+			allFeatures, err := r.listFeaturesFromApi(ctx, featureClient, id)
+			if err != nil {
+				return fmt.Errorf("listing features from API: %+v", err)
+			}
+
+			var model ResourceProviderRegistrationModel
+			if err := metadata.Decode(&model); err != nil {
+				return fmt.Errorf("decoding model: %+v", err)
+			}
+
+			features, err := r.flattenFeatures(*allFeatures, model.Features)
+			if err != nil {
+				return fmt.Errorf("flattening features: %+v", err)
 			}
 
 			return metadata.Encode(&ResourceProviderRegistrationModel{
 				Name:     id.ResourceProvider,
-				Features: features,
+				Features: *features,
 			})
 		},
 		Timeout: 5 * time.Minute,
@@ -302,6 +297,36 @@ func (r ResourceProviderRegistrationResource) CustomImporter() sdk.ResourceRunFu
 
 		if err := r.checkIfManagedByTerraform(id.ResourceProvider, account); err != nil {
 			return fmt.Errorf("importing Resource Provider %q: %+v", id.ResourceProvider, err)
+		}
+
+		allFeatures, err := r.listFeaturesFromApi(ctx, metadata.Client.Resource.FeaturesClient, id)
+		if err != nil {
+			return fmt.Errorf("listing features from API: %+v", err)
+		}
+
+		configFeatures := make([]ResourceProviderRegistrationFeatureModel, 0)
+		if v := metadata.ResourceData.Get("feature"); v != nil {
+			raw := v.([]interface{})
+			for _, vRaw := range raw {
+				valRaw := vRaw.(map[string]interface{})
+				configFeatures = append(configFeatures, ResourceProviderRegistrationFeatureModel{
+					Name:       valRaw["name"].(string),
+					Registered: valRaw["registered"].(bool),
+				})
+			}
+		}
+		panic(len(configFeatures))
+
+		features, err := r.flattenFeatures(*allFeatures, configFeatures)
+		if err != nil {
+			return fmt.Errorf("flattening features: %+v", err)
+		}
+
+		if err := metadata.Encode(&ResourceProviderRegistrationModel{
+			Name:     id.ResourceProvider,
+			Features: *features,
+		}); err != nil {
+			return fmt.Errorf("encoding model: %+v", err)
 		}
 
 		return nil
@@ -500,4 +525,69 @@ func (r ResourceProviderRegistrationResource) featureRegisteringStateRefreshFunc
 
 		return res, *res.Properties.State, nil
 	}
+}
+
+func (r ResourceProviderRegistrationResource) flattenFeatures(apiFeatures map[string]features.Result, configFeatures []ResourceProviderRegistrationFeatureModel) (*[]ResourceProviderRegistrationFeatureModel, error) {
+	output := make([]ResourceProviderRegistrationFeatureModel, 0)
+	for _, configFeature := range configFeatures {
+		apiFeature, ok := apiFeatures[strings.ToLower(configFeature.Name)]
+		if !ok {
+			// if the API has removed this feature, remove this from the output so that we show a diff
+			continue
+		}
+
+		if apiFeature.Properties == nil || apiFeature.Properties.State == nil {
+			return nil, fmt.Errorf("`properties`/`properties.State` was nil for Feature %q", configFeature.Name)
+		}
+
+		switch strings.ToLower(*apiFeature.Properties.State) {
+		case "registered":
+			{
+				output = append(output, ResourceProviderRegistrationFeatureModel{
+					Name:       configFeature.Name,
+					Registered: true,
+				})
+			}
+
+		case "unregistered":
+			{
+				output = append(output, ResourceProviderRegistrationFeatureModel{
+					Name:       configFeature.Name,
+					Registered: false,
+				})
+			}
+
+		default:
+			{
+				return nil, fmt.Errorf("the feature %q is in unsupported state %q", configFeature.Name, *apiFeature.Properties.State)
+			}
+		}
+	}
+
+	return &output, nil
+}
+
+func (r ResourceProviderRegistrationResource) listFeaturesFromApi(ctx context.Context, client *features.Client, id *parse.ResourceProviderId) (*map[string]features.Result, error) {
+	// TODO: this can be removed with an embedded sdk
+	allFeaturesResp, err := client.ListComplete(ctx, id.ResourceProvider)
+	if err != nil {
+		return nil, fmt.Errorf("listing features available for Resource Provider %q: %+v", id.ResourceProvider, err)
+	}
+	allFeatures := make(map[string]features.Result, 0)
+	for allFeaturesResp.NotDone() {
+		val := allFeaturesResp.Value()
+		if val.Name == nil {
+			continue
+		}
+
+		name := strings.ToLower(*val.Name)
+		name = strings.TrimPrefix(name, strings.ToLower(id.ResourceProvider))
+		name = strings.TrimPrefix(name, "/")
+
+		allFeatures[name] = val
+		if err := allFeaturesResp.NextWithContext(ctx); err != nil {
+			return nil, fmt.Errorf("listing next page: %+v", err)
+		}
+	}
+	return &allFeatures, nil
 }
