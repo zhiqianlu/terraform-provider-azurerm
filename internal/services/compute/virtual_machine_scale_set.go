@@ -552,7 +552,7 @@ func expandVirtualMachineScaleSetIPConfiguration(raw map[string]interface{}) (*c
 	primary := raw["primary"].(bool)
 	version := compute.IPVersion(raw["version"].(string))
 	if primary && version == compute.IPv6 {
-		return nil, fmt.Errorf("An IPv6 Primary IP Configuration is unsupported - instead add a IPv4 IP Configuration as the Primary and make the IPv6 IP Configuration the secondary")
+		return nil, fmt.Errorf("an IPv6 Primary IP Configuration is unsupported - instead add a IPv4 IP Configuration as the Primary and make the IPv6 IP Configuration the secondary")
 	}
 
 	ipConfiguration := compute.VirtualMachineScaleSetIPConfiguration{
@@ -683,7 +683,7 @@ func expandVirtualMachineScaleSetIPConfigurationUpdate(raw map[string]interface{
 	version := compute.IPVersion(raw["version"].(string))
 
 	if primary && version == compute.IPv6 {
-		return nil, fmt.Errorf("An IPv6 Primary IP Configuration is unsupported - instead add a IPv4 IP Configuration as the Primary and make the IPv6 IP Configuration the secondary")
+		return nil, fmt.Errorf("an IPv6 Primary IP Configuration is unsupported - instead add a IPv4 IP Configuration as the Primary and make the IPv6 IP Configuration the secondary")
 	}
 
 	ipConfiguration := compute.VirtualMachineScaleSetUpdateIPConfiguration{
@@ -726,6 +726,13 @@ func expandVirtualMachineScaleSetPublicIPAddressUpdate(raw map[string]interface{
 		}
 		publicIPAddressConfig.VirtualMachineScaleSetUpdatePublicIPAddressConfigurationProperties.DNSSettings = dns
 	}
+
+	// This is a Service Team bug where they do not expose a way for us to pass the Public IP Prefix to the update config
+	// if publicIPPrefixID := raw["public_ip_prefix_id"].(string); publicIPPrefixID != "" {
+	// 	publicIPAddressConfig.VirtualMachineScaleSetUpdatePublicIPAddressConfigurationProperties.PublicIPPrefix = &compute.SubResource{
+	// 		ID: utils.String(publicIPPrefixID),
+	// 	}
+	// }
 
 	if idleTimeout := raw["idle_timeout_in_minutes"].(int); idleTimeout > 0 {
 		publicIPAddressConfig.VirtualMachineScaleSetUpdatePublicIPAddressConfigurationProperties.IdleTimeoutInMinutes = utils.Int32(int32(raw["idle_timeout_in_minutes"].(int)))
