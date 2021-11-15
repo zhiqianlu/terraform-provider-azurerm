@@ -5,7 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/services/communication/mgmt/2020-08-20/communication"
+	"github.com/hashicorp/go-azure-helpers/lang/response"
+	"github.com/hashicorp/terraform-provider-azurerm/internal/services/communication/sdk/2020-08-20/communicationservice"
+
 	"github.com/hashicorp/terraform-provider-azurerm/helpers/azure"
 	"github.com/hashicorp/terraform-provider-azurerm/helpers/tf"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/clients"
@@ -95,37 +97,32 @@ func resourceArmCommunicationServiceCreateUpdate(d *pluginsdk.ResourceData, meta
 	name := d.Get("name").(string)
 	resourceGroup := d.Get("resource_group_name").(string)
 
-	id := parse.NewCommunicationServiceID(subscriptionId, resourceGroup, name)
+	id := communicationservice.NewCommunicationServiceID(subscriptionId, resourceGroup, name)
 
 	if d.IsNewResource() {
-		existing, err := client.Get(ctx, resourceGroup, name)
+		existing, err := client.Get(ctx, id)
 		if err != nil {
-			if !utils.ResponseWasNotFound(existing.Response) {
+			if !response.WasNotFound(existing.HttpResponse) {
 				return fmt.Errorf("checking for presence of existing %s: %+v", id, err)
 			}
 		}
 
-		if !utils.ResponseWasNotFound(existing.Response) {
+		if !response.WasNotFound(existing.HttpResponse) {
 			return tf.ImportAsExistsError("azurerm_communication_service", id.ID())
 		}
 	}
 
-	parameter := communication.ServiceResource{
+	parameter := communicationservice.CommunicationServiceResource{
 		// The location is always `global` from the Azure Portal
 		Location: utils.String(location.Normalize("global")),
-		ServiceProperties: &communication.ServiceProperties{
-			DataLocation: utils.String(d.Get("data_location").(string)),
+		Properties: &communicationservice.CommunicationServiceProperties{
+			DataLocation: d.Get("data_location").(string),
 		},
-		Tags: tags.Expand(d.Get("tags").(map[string]interface{})),
+		Tags: expandTags(d.Get("tags").(map[string]interface{})),
 	}
 
-	future, err := client.CreateOrUpdate(ctx, resourceGroup, name, &parameter)
-	if err != nil {
+	if err := client.CreateOrUpdateThenPoll(ctx, id, parameter); err != nil {
 		return fmt.Errorf("creating/updating %s: %+v", id, err)
-	}
-
-	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("waiting for create/update of %s: %+v", id, err)
 	}
 
 	d.SetId(id.ID())
@@ -138,14 +135,14 @@ func resourceArmCommunicationServiceRead(d *pluginsdk.ResourceData, meta interfa
 	ctx, cancel := timeouts.ForRead(meta.(*clients.Client).StopContext, d)
 	defer cancel()
 
-	id, err := parse.CommunicationServiceID(d.Id())
+	id, err := communicationservice.ParseCommunicationServiceID(d.Id())
 	if err != nil {
 		return err
 	}
 
-	resp, err := client.Get(ctx, id.ResourceGroup, id.Name)
+	resp, err := client.Get(ctx, *id)
 	if err != nil {
-		if utils.ResponseWasNotFound(resp.Response) {
+		if response.WasNotFound(resp.HttpResponse) {
 			log.Printf("[DEBUG] %s was not found - removing from state", *id)
 			d.SetId("")
 			return nil
@@ -154,17 +151,13 @@ func resourceArmCommunicationServiceRead(d *pluginsdk.ResourceData, meta interfa
 		return fmt.Errorf("retrieving %s: %+v", *id, err)
 	}
 
-	d.Set("name", id.Name)
-	d.Set("resource_group_name", id.ResourceGroup)
+	d.Set("name", id.CommunicationServiceName)
+	d.Set("resource_group_name", id.ResourceGroupName)
 
-	if props := resp.ServiceProperties; props != nil {
-		d.Set("data_location", props.DataLocation)
-	}
-
-	keysResp, err := client.ListKeys(ctx, id.ResourceGroup, id.Name)
+	keysResp, err := client.ListKeys(ctx, *id)
 
 	if err != nil {
-		if utils.ResponseWasNotFound(resp.Response) {
+		if response.WasNotFound(resp.HttpResponse) {
 			log.Printf("[DEBUG] %s was not found - removing from state", *id)
 			d.SetId("")
 			return nil
@@ -173,12 +166,21 @@ func resourceArmCommunicationServiceRead(d *pluginsdk.ResourceData, meta interfa
 		return fmt.Errorf("retrieving %s: %+v", *id, err)
 	}
 
-	d.Set("primary_connection_string", keysResp.PrimaryConnectionString)
-	d.Set("secondary_connection_string", keysResp.SecondaryConnectionString)
-	d.Set("primary_key", keysResp.PrimaryKey)
-	d.Set("secondary_key", keysResp.SecondaryKey)
+	if model := keysResp.Model; model != nil {
+		d.Set("primary_connection_string", model.PrimaryConnectionString)
+		d.Set("secondary_connection_string", model.SecondaryConnectionString)
+		d.Set("primary_key", model.PrimaryKey)
+		d.Set("secondary_key", model.SecondaryKey)
+	}
 
-	return tags.FlattenAndSet(d, resp.Tags)
+	if model := resp.Model; model != nil {
+		if props := model.Properties; props != nil {
+			d.Set("data_location", props.DataLocation)
+		}
+		return tags.FlattenAndSet(d, flattenTags(model.Tags))
+	}
+
+	return nil
 }
 
 func resourceArmCommunicationServiceDelete(d *pluginsdk.ResourceData, meta interface{}) error {
@@ -186,18 +188,13 @@ func resourceArmCommunicationServiceDelete(d *pluginsdk.ResourceData, meta inter
 	ctx, cancel := timeouts.ForDelete(meta.(*clients.Client).StopContext, d)
 	defer cancel()
 
-	id, err := parse.CommunicationServiceID(d.Id())
+	id, err := communicationservice.ParseCommunicationServiceID(d.Id())
 	if err != nil {
 		return err
 	}
 
-	future, err := client.Delete(ctx, id.ResourceGroup, id.Name)
-	if err != nil {
+	if err := client.DeleteThenPoll(ctx, *id); err != nil {
 		return fmt.Errorf("deleting %s: %+v", *id, err)
-	}
-
-	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("waiting for deletion of %s: %+v", *id, err)
 	}
 
 	return nil

@@ -1,16 +1,16 @@
 package client
 
 import (
-	"github.com/Azure/azure-sdk-for-go/services/communication/mgmt/2020-08-20/communication"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/common"
+	"github.com/hashicorp/terraform-provider-azurerm/internal/services/communication/sdk/2020-08-20/communicationservice"
 )
 
 type Client struct {
-	ServiceClient *communication.ServiceClient
+	ServiceClient *communicationservice.CommunicationServiceClient
 }
 
 func NewClient(o *common.ClientOptions) *Client {
-	serviceClient := communication.NewServiceClientWithBaseURI(o.ResourceManagerEndpoint, o.SubscriptionId)
+	serviceClient := communicationservice.NewCommunicationServiceClientWithBaseURI(o.ResourceManagerEndpoint)
 	o.ConfigureClient(&serviceClient.Client, o.ResourceManagerAuthorizer)
 
 	return &Client{
