@@ -101,7 +101,6 @@ func VirtualMachineScaleSetIdentitySchema() *pluginsdk.Schema {
 
 func ExpandVirtualMachineScaleSetIdentity(input []interface{}) (*compute.VirtualMachineScaleSetIdentity, error) {
 	if len(input) == 0 {
-		// TODO: Does this want to be this, or nil?
 		return &compute.VirtualMachineScaleSetIdentity{
 			Type: compute.ResourceIdentityTypeNone,
 		}, nil

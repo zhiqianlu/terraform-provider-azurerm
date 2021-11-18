@@ -117,17 +117,9 @@ func resourceOrchestratedVirtualMachineScaleSet() *pluginsdk.Resource {
 				Type:     pluginsdk.TypeString,
 				Optional: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					"None",
 					"Windows_Client",
 					"Windows_Server",
 				}, false),
-				DiffSuppressFunc: func(_, old, new string, _ *pluginsdk.ResourceData) bool {
-					if old == "None" && new == "" || old == "" && new == "None" {
-						return true
-					}
-
-					return false
-				},
 			},
 
 			"max_bid_price": {
@@ -198,24 +190,23 @@ func resourceOrchestratedVirtualMachineScaleSet() *pluginsdk.Resource {
 
 func resourceOrchestratedVirtualMachineScaleSetCreate(d *pluginsdk.ResourceData, meta interface{}) error {
 	client := meta.(*clients.Client).Compute.VMScaleSetClient
+	subscriptionId := meta.(*clients.Client).Account.SubscriptionId
 	ctx, cancel := timeouts.ForCreate(meta.(*clients.Client).StopContext, d)
 	defer cancel()
 
 	isLegacy := true
-	resourceGroup := d.Get("resource_group_name").(string)
-	name := d.Get("name").(string)
-
+	id := parse.NewVirtualMachineID(subscriptionId, d.Get("resource_group_name").(string), d.Get("name").(string))
 	if d.IsNewResource() {
 		// Upgrading to the 2021-07-01 exposed a new expand parameter to the GET method
-		existing, err := client.Get(ctx, resourceGroup, name, compute.ExpandTypesForGetVMScaleSetsUserData)
+		existing, err := client.Get(ctx, id.ResourceGroup, id.Name, compute.ExpandTypesForGetVMScaleSetsUserData)
 		if err != nil {
 			if !utils.ResponseWasNotFound(existing.Response) {
-				return fmt.Errorf("checking for existing Orchestrated Virtual Machine Scale Set %q (Resource Group %q): %+v", name, resourceGroup, err)
+				return fmt.Errorf("checking for presence of existing %s: %+v", id, err)
 			}
 		}
 
-		if existing.ID != nil && *existing.ID != "" {
-			return tf.ImportAsExistsError("azurerm_orchestrated_virtual_machine_scale_set", *existing.ID)
+		if !utils.ResponseWasNotFound(existing.Response) {
+			return tf.ImportAsExistsError("azurerm_orchestrated_virtual_machine_scale_set", id.ID())
 		}
 	}
 
@@ -286,11 +277,11 @@ func resourceOrchestratedVirtualMachineScaleSetCreate(d *pluginsdk.ResourceData,
 			// if the Computer Prefix Name was not defined use the computer name
 			if vmssOsProfile.ComputerNamePrefix == nil || len(*vmssOsProfile.ComputerNamePrefix) == 0 {
 				// validate that the computer name is a valid Computer Prefix Name
-				_, errs := computeValidate.WindowsComputerNamePrefix(name, "computer_name_prefix")
+				_, errs := computeValidate.WindowsComputerNamePrefix(id.Name, "computer_name_prefix")
 				if len(errs) > 0 {
 					return fmt.Errorf("unable to assume default computer name prefix %s. Please adjust the %q, or specify an explicit %q", errs[0], "name", "computer_name_prefix")
 				}
-				vmssOsProfile.ComputerNamePrefix = utils.String(name)
+				vmssOsProfile.ComputerNamePrefix = utils.String(id.Name)
 			}
 		}
 
@@ -302,11 +293,11 @@ func resourceOrchestratedVirtualMachineScaleSetCreate(d *pluginsdk.ResourceData,
 			// if the Computer Prefix Name was not defined use the computer name
 			if len(*vmssOsProfile.ComputerNamePrefix) == 0 {
 				// validate that the computer name is a valid Computer Prefix Name
-				_, errs := computeValidate.LinuxComputerNamePrefix(name, "computer_name_prefix")
+				_, errs := computeValidate.LinuxComputerNamePrefix(id.Name, "computer_name_prefix")
 				if len(errs) > 0 {
 					return fmt.Errorf("unable to assume default computer name prefix %s. Please adjust the %q, or specify an explicit %q", errs[0], "name", "computer_name_prefix")
 				}
-				vmssOsProfile.ComputerNamePrefix = utils.String(name)
+				vmssOsProfile.ComputerNamePrefix = utils.String(id.Name)
 			}
 		}
 
@@ -423,7 +414,7 @@ func resourceOrchestratedVirtualMachineScaleSetCreate(d *pluginsdk.ResourceData,
 		}
 
 		if v, ok := d.GetOk("zone_balance"); ok && v.(bool) {
-			if len(*zones) == 0 {
+			if zones == nil || len(*zones) == 0 {
 				return fmt.Errorf("`zone_balance` can only be set to `true` when zones are specified")
 			}
 
@@ -433,61 +424,18 @@ func resourceOrchestratedVirtualMachineScaleSetCreate(d *pluginsdk.ResourceData,
 		props.VirtualMachineScaleSetProperties.VirtualMachineProfile = &virtualMachineProfile
 	}
 
-	log.Printf("[DEBUG] Creating Orchestrated Virtual Machine Scale Set %q (Resource Group %q)..", name, resourceGroup)
-	future, err := client.CreateOrUpdate(ctx, resourceGroup, name, props)
+	log.Printf("[DEBUG] Creating %s..", id)
+	future, err := client.CreateOrUpdate(ctx, id.ResourceGroup, id.Name, props)
 	if err != nil {
-		return fmt.Errorf("creating Orchestrated Virtual Machine Scale Set %q (Resource Group %q): %+v", name, resourceGroup, err)
+		return fmt.Errorf("creating %s: %+v", id, err)
 	}
 
-	log.Printf("[DEBUG] Waiting for Orchestrated Virtual Machine Scale Set %q (Resource Group %q) to be created..", name, resourceGroup)
+	log.Printf("[DEBUG] Waiting for %s to be created..", id)
 	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		// If it is a Retryable Error re-issue the PUT for 10 loops until either the error goes away or the limit has been reached
-		if strings.Contains(err.Error(), "RetryableError") {
-			log.Printf("[DEBUG] Retryable error hit for Orchestrated Virtual Machine Scale Set %q (Resource Group %q) to be created..", name, resourceGroup)
-			errCount := 1
-
-			for {
-				log.Printf("[DEBUG] Retrying PUT %d for Orchestrated Virtual Machine Scale Set %q (Resource Group %q)..", errCount, name, resourceGroup)
-				future, err := client.CreateOrUpdate(ctx, resourceGroup, name, props)
-				if err != nil {
-					return fmt.Errorf("creating Orchestrated Virtual Machine Scale Set %q (Resource Group %q) after %d retries: %+v", name, resourceGroup, errCount, err)
-				}
-
-				err = future.WaitForCompletionRef(ctx, client.Client)
-				if err != nil && strings.Contains(err.Error(), "RetryableError") {
-					if errCount == 10 {
-						return fmt.Errorf("waiting for creation of Orchestrated Virtual Machine Scale Set %q (Resource Group %q) after %d retries: %+v", name, resourceGroup, err, errCount)
-					}
-					errCount++
-				} else {
-					if err != nil {
-						// Hit an error while retying that is not retryable anymore...
-						return fmt.Errorf("hit unretryable error waiting for creation of Orchestrated Virtual Machine Scale Set %q (Resource Group %q) after %d retries: %+v", name, resourceGroup, err, errCount)
-					} else {
-						// err is nil and finally succeeded continue with the rest of the create function...
-						break
-					}
-				}
-			}
-		} else {
-			// Not a retryable error...
-			return fmt.Errorf("waiting for creation of Orchestrated Virtual Machine Scale Set %q (Resource Group %q): %+v", name, resourceGroup, err)
-		}
+		return fmt.Errorf("waiting for creation of %s: %+v", id, err)
 	}
 
-	log.Printf("[DEBUG] Orchestrated Virtual Machine Scale Set %q (Resource Group %q) was created", name, resourceGroup)
-	log.Printf("[DEBUG] Retrieving Orchestrated Virtual Machine Scale Set %q (Resource Group %q)..", name, resourceGroup)
-
-	// Upgrading to the 2021-07-01 exposed a new expand parameter in the GET method
-	resp, err := client.Get(ctx, resourceGroup, name, compute.ExpandTypesForGetVMScaleSetsUserData)
-	if err != nil {
-		return fmt.Errorf("retrieving Orchestrated Virtual Machine Scale Set %q (Resource Group %q): %+v", name, resourceGroup, err)
-	}
-
-	if resp.ID == nil || *resp.ID == "" {
-		return fmt.Errorf("retrieving Orchestrated Virtual Machine Scale Set %q (Resource Group %q): ID was nil", name, resourceGroup)
-	}
-	d.SetId(*resp.ID)
+	d.SetId(id.ID())
 
 	return resourceOrchestratedVirtualMachineScaleSetRead(d, meta)
 }
@@ -909,7 +857,12 @@ func resourceOrchestratedVirtualMachineScaleSetRead(d *pluginsdk.ResourceData, m
 		d.Set("max_bid_price", maxBidPrice)
 
 		d.Set("eviction_policy", string(profile.EvictionPolicy))
-		d.Set("license_type", profile.LicenseType)
+
+		licenceType := ""
+		if profile.LicenseType != nil && !strings.EqualFold(*profile.LicenseType, "None") {
+			licenceType = *profile.LicenseType
+		}
+		d.Set("license_type", licenceType)
 
 		// the service just return empty when this is not assigned when provisioned
 		// See discussion on https://github.com/Azure/azure-rest-api-specs/issues/10971

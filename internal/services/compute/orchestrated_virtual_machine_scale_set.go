@@ -215,7 +215,6 @@ func OrchestratedVirtualMachineScaleSetIdentitySchema() *pluginsdk.Schema {
 					Required: true,
 					ValidateFunc: validation.StringInSlice([]string{
 						string(compute.ResourceIdentityTypeUserAssigned),
-						string(compute.ResourceIdentityTypeNone),
 					}, false),
 				},
 
@@ -765,11 +764,10 @@ func FlattenOrchestratedVirtualMachineScaleSetOSProfile(input *compute.VirtualMa
 
 	output := make(map[string]interface{})
 
+	// use the current data from the config
+	customData := utils.Base64EncodeIfNot(d.Get("os_profile.0.custom_data").(string))
 	if input.CustomData != nil {
-		output["custom_data"] = *input.CustomData
-	} else {
-		// look up the current custom data
-		output["custom_data"] = utils.Base64EncodeIfNot(d.Get("os_profile.0.custom_data").(string))
+		customData = *input.CustomData
 	}
 
 	if winConfig := input.WindowsConfiguration; winConfig != nil {
@@ -780,7 +778,11 @@ func FlattenOrchestratedVirtualMachineScaleSetOSProfile(input *compute.VirtualMa
 		output["linux_configuration"] = flattenOrchestratedVirtualMachineScaleSetLinuxConfiguration(input, d)
 	}
 
-	return []interface{}{output}
+	return []interface{}{
+		map[string]interface{}{
+			"custom_data": customData,
+		},
+	}
 }
 
 func validateAdminUsernameWindows(input interface{}, key string) (warnings []string, errors []error) {
