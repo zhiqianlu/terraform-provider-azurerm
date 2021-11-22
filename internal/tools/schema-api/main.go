@@ -14,18 +14,18 @@ import (
 /docs/v1/resources/{name} - info for a specific resource
 */
 
-var data providerjson.ProviderData
+var data providerjson.ProviderJSON
 
 func main() {
 	data.LoadData()
 
 	mux := http.NewServeMux()
 	// paths
-	mux.HandleFunc(providerjson.DataSourcesList, data.DataSourcesHandler)
+	mux.HandleFunc(providerjson.DataSourcesList, data.ListDataSources)
 	mux.HandleFunc(providerjson.ResourcesList, data.ListResources)
 
 	mux.HandleFunc(providerjson.DataSourcesPath, data.DataSourcesHandler)
-	mux.HandleFunc(providerjson.ResourcesPath, data.ListResources)
+	mux.HandleFunc(providerjson.ResourcesPath, data.ResourcesHandler)
 
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }
