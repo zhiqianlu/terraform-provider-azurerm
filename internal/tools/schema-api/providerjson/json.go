@@ -1,8 +1,6 @@
 package providerjson
 
 import (
-	"time"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/provider"
 )
@@ -31,7 +29,9 @@ type SchemaJSON struct {
 }
 
 type ResourceJSON struct {
-	Schema map[string]SchemaJSON `json:"schema"`
+	Schema   map[string]SchemaJSON `json:"schema"`
+	Timeouts *ResourceTimeoutJSON  `json:"timeouts,omitempty"`
+
 	// MigrateState         omit                   `json:",omitempty"`
 	// StateUpgraders       omit                   `json:",omitempty"`
 	// Create               omit                   `json:",omitempty"`
@@ -49,15 +49,13 @@ type ResourceJSON struct {
 	// DeleteWithoutTimeout omit                   `json:",omitempty"`
 	// CustomizeDiff        omit                   `json:",omitempty"`
 	// Importer             omit                   `json:",omitempty"`
-	Timeouts *ResourceTimeoutJSON `json:"-"`
 }
 
 type ResourceTimeoutJSON struct {
-	*schema.ResourceTimeout
-	Create *time.Duration `json:"create,omitempty,int"`
-	Read   *time.Duration `json:"read,omitempty,int"`
-	Delete *time.Duration `json:"delete,omitempty,int"`
-	Update *time.Duration `json:"update,omitempty,int"`
+	Create int `json:"create,omitempty"`
+	Read   int `json:"read,omitempty"`
+	Delete int `json:"delete,omitempty"`
+	Update int `json:"update,omitempty"`
 }
 
 //func (p *Provider) MarshalJSON() ([]byte, error) {

@@ -11,15 +11,25 @@ func fromRaw(input *schema.Resource) (*ResourceJSON, error) {
 		return nil, fmt.Errorf("resource not found")
 	}
 
+	result := &ResourceJSON{}
 	translatedSchema := make(map[string]SchemaJSON, 0)
 
 	for k, s := range input.Schema {
 		translatedSchema[k] = schemaFromRaw(s)
 	}
+	result.Schema = translatedSchema
 
-	return &ResourceJSON{
-		Schema: translatedSchema,
-	}, nil
+	if input.Timeouts != nil {
+		timeouts := &ResourceTimeoutJSON{
+			Create: int(input.Timeouts.Create.Minutes()),
+			Read:   int(input.Timeouts.Read.Minutes()),
+			Delete: int(input.Timeouts.Delete.Minutes()),
+			Update: int(input.Timeouts.Update.Minutes()),
+		}
+		result.Timeouts = timeouts
+	}
+
+	return result, nil
 }
 
 func schemaFromRaw(input *schema.Schema) SchemaJSON {
