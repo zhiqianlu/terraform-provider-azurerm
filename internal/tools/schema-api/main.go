@@ -25,5 +25,6 @@ func main() {
 	mux.HandleFunc(providerjson.DataSourcesPath, data.DataSourcesHandler)
 	mux.HandleFunc(providerjson.ResourcesPath, data.ResourcesHandler)
 
+	log.Println("starting api service on localhost:8080") // TODO - Make this configurable
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }
