@@ -14,10 +14,8 @@ import (
 /docs/v1/resources/{name} - info for a specific resource
 */
 
-var data providerjson.ProviderJSON
-
 func main() {
-	data.LoadData()
+	data := providerjson.LoadData()
 
 	mux := http.NewServeMux()
 	// paths

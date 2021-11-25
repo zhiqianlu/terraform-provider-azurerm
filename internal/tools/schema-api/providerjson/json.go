@@ -6,72 +6,57 @@ import (
 	"time"
 )
 
-const (
-	DataSourcesPath = "/schema-data/v1/data-sources/"
-	ResourcesPath   = "/schema-data/v1/resources/"
-	DataSourcesList = "/schema-data/v1/data-sources"
-	ResourcesList   = "/schema-data/v1/resources"
-)
+// type omit *struct{}
 
-type omit *struct{}
+//type ProviderJSON struct {
+//	*schema.Provider
+//	//Schema map[string]*SchemaJSON `json:"schema"`
+//}
 
-type ProviderJSON struct {
-	*schema.Provider
-	Schema map[string]*SchemaJSON `json:"schema"`
-}
+type ProviderJSON schema.Provider
 
 type SchemaJSON struct {
-	*schema.Schema
-	Type             schema.ValueType        `json:"type"`
-	ConfigMode       schema.SchemaConfigMode `json:"config_mode"`
-	Optional         bool                    `json:"optional"`
-	Required         bool                    `json:"required"`
-	DiffSuppressFunc omit                    `json:",omitempty"`
-	Default          interface{}             `json:"default"`
-	DefaultFunc      omit                    `json:",omitempty"`
-	Description      string                  `json:"description"`
-	InputDefault     omit                    `json:",omitempty"`
-	Computed         bool                    `json:"computed"`
-	ForceNew         bool                    `json:"force_new"`
-	StateFunc        omit                    `json:",omitempty"`
-	Elem             interface{}             `json:"elem"`
-	MaxItems         int                     `json:"max_items"`
-	MinItems         int                     `json:"min_items"`
-	Set              omit                    `json:",omitempty"`
-	StateMigrateFunc omit                    `json:",omitempty"`
-	ValidateFunc     omit                    `json:",omitempty"`
-	ValidateDiagFunc omit                    `json:",omitempty"`
+	Type        string      `json:"type,omitempty"`
+	ConfigMode  string      `json:"config_mode,omitempty"`
+	Optional    bool        `json:"optional,omitempty"`
+	Required    bool        `json:"required,omitempty"`
+	Default     interface{} `json:"default,omitempty"`
+	Description string      `json:"description,omitempty"`
+	Computed    bool        `json:"computed,omitempty"`
+	ForceNew    bool        `json:"force_new,omitempty"`
+	Elem        interface{} `json:"elem,omitempty"`
+	MaxItems    int         `json:"max_items,omitempty"`
+	MinItems    int         `json:"min_items,omitempty"`
 }
 
 type ResourceJSON struct {
-	*schema.Resource
-	Schema               map[string]*SchemaJSON
-	MigrateState         omit                 `json:",omitempty"`
-	StateUpgraders       omit                 `json:",omitempty"`
-	Create               omit                 `json:",omitempty"`
-	Read                 omit                 `json:",omitempty"`
-	Update               omit                 `json:",omitempty"`
-	Delete               omit                 `json:",omitempty"`
-	Exists               omit                 `json:",omitempty"`
-	CreateContext        omit                 `json:",omitempty"`
-	ReadContext          omit                 `json:",omitempty"`
-	UpdateContext        omit                 `json:",omitempty"`
-	DeleteContext        omit                 `json:",omitempty"`
-	CreateWithoutTimeout omit                 `json:",omitempty"`
-	ReadWithoutTimeout   omit                 `json:",omitempty"`
-	UpdateWithoutTimeout omit                 `json:",omitempty"`
-	DeleteWithoutTimeout omit                 `json:",omitempty"`
-	CustomizeDiff        omit                 `json:",omitempty"`
-	Importer             omit                 `json:",omitempty"`
-	Timeouts             *ResourceTimeoutJSON `json:"-"`
+	Schema map[string]SchemaJSON `json:"schema"`
+	// MigrateState         omit                   `json:",omitempty"`
+	// StateUpgraders       omit                   `json:",omitempty"`
+	// Create               omit                   `json:",omitempty"`
+	// Read                 omit                   `json:",omitempty"`
+	// Update               omit                   `json:",omitempty"`
+	// Delete               omit                   `json:",omitempty"`
+	// Exists               omit                   `json:",omitempty"`
+	// CreateContext        omit                   `json:",omitempty"`
+	// ReadContext          omit                   `json:",omitempty"`
+	// UpdateContext        omit                   `json:",omitempty"`
+	// DeleteContext        omit                   `json:",omitempty"`
+	// CreateWithoutTimeout omit                   `json:",omitempty"`
+	// ReadWithoutTimeout   omit                   `json:",omitempty"`
+	// UpdateWithoutTimeout omit                   `json:",omitempty"`
+	// DeleteWithoutTimeout omit                   `json:",omitempty"`
+	// CustomizeDiff        omit                   `json:",omitempty"`
+	// Importer             omit                   `json:",omitempty"`
+	Timeouts *ResourceTimeoutJSON `json:"-"`
 }
 
 type ResourceTimeoutJSON struct {
 	*schema.ResourceTimeout
-	Create *time.Duration `json:"create"`
-	Read   *time.Duration `json:"read"`
-	Delete *time.Duration `json:"delete"`
-	Update *time.Duration `json:"update"`
+	Create *time.Duration `json:"create,omitempty,int"`
+	Read   *time.Duration `json:"read,omitempty,int"`
+	Delete *time.Duration `json:"delete,omitempty,int"`
+	Update *time.Duration `json:"update,omitempty,int"`
 }
 
 //func (p *Provider) MarshalJSON() ([]byte, error) {
@@ -230,8 +215,9 @@ type ResourceTimeoutJSON struct {
 //}
 //
 
-func (p *ProviderJSON) LoadData() {
-	p.Provider = provider.AzureProvider()
+func LoadData() *ProviderJSON {
+	p := provider.AzureProvider()
+	return (*ProviderJSON)(p)
 }
 
 //
