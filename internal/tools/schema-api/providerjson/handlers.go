@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	DataSourcesList = "/schema-data/v1/data-sources"
-	ResourcesList   = "/schema-data/v1/resources"
-	DataSourcesPath = "/schema-data/v1/data-sources/"
-	ResourcesPath   = "/schema-data/v1/resources/"
+	DataSourcesList = "/schema-data/v1/data-sources"  // Lists all data sources in the Provider
+	ResourcesList   = "/schema-data/v1/resources"     // Lists all Resources in the Provider
+	DataSourcesPath = "/schema-data/v1/data-sources/" // Gets all schema data for a data source
+	ResourcesPath   = "/schema-data/v1/resources/"    // Gets all schema data for a Resource
 )
 
 func (p ProviderJSON) DataSourcesHandler(w http.ResponseWriter, req *http.Request) {
