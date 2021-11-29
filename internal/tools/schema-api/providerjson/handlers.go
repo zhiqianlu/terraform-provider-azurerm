@@ -19,7 +19,7 @@ func (p ProviderJSON) DataSourcesHandler(w http.ResponseWriter, req *http.Reques
 
 	dsRaw := strings.Split(req.URL.RequestURI(), DataSourcesPath)
 	ds := strings.Split(dsRaw[1], "/")[0]
-	data, err := fromRaw(p.DataSourcesMap[ds])
+	data, err := resourceFromRaw(p.DataSourcesMap[ds])
 	if err != nil {
 		w.Write([]byte(fmt.Sprintf("Could not process schema for %q from provider: %+v", ds, err)))
 	}
@@ -35,7 +35,7 @@ func (p ProviderJSON) ResourcesHandler(w http.ResponseWriter, req *http.Request)
 
 	dsRaw := strings.Split(req.URL.RequestURI(), ResourcesPath)
 	ds := strings.Split(dsRaw[1], "/")[0]
-	data, err := fromRaw(p.ResourcesMap[ds])
+	data, err := resourceFromRaw(p.ResourcesMap[ds])
 	if err != nil {
 		w.Write([]byte(fmt.Sprintf("Could not process schema for %q from provider: %+v", ds, err)))
 	}

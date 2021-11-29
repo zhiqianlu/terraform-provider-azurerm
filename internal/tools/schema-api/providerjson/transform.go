@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func fromRaw(input *schema.Resource) (*ResourceJSON, error) {
+func resourceFromRaw(input *schema.Resource) (*ResourceJSON, error) {
 	if input == nil {
 		return nil, fmt.Errorf("resource not found")
 	}
@@ -70,7 +70,7 @@ func decodeElem(input interface{}) interface{} {
 	case *schema.Schema:
 		return schemaFromRaw(t)
 	case *schema.Resource:
-		r, _ := fromRaw(t)
+		r, _ := resourceFromRaw(t)
 		return r
 	}
 	return nil
