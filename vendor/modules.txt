@@ -12,6 +12,7 @@ cloud.google.com/go/storage
 # github.com/Azure/azure-sdk-for-go v59.2.0+incompatible
 ## explicit
 github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources
+github.com/Azure/azure-sdk-for-go/profiles/latest/graphrbac/graphrbac
 github.com/Azure/azure-sdk-for-go/services/aad/mgmt/2017-04-01/aad
 github.com/Azure/azure-sdk-for-go/services/advisor/mgmt/2020-01-01/advisor
 github.com/Azure/azure-sdk-for-go/services/apimanagement/mgmt/2020-12-01/apimanagement
@@ -254,7 +255,7 @@ github.com/googleapis/gax-go/v2
 # github.com/hashicorp/errwrap v1.1.0
 ## explicit
 github.com/hashicorp/errwrap
-# github.com/hashicorp/go-azure-helpers v0.18.0
+# github.com/hashicorp/go-azure-helpers v0.18.1-0.20211130093945-daa17c9758e5
 ## explicit
 github.com/hashicorp/go-azure-helpers/authentication
 github.com/hashicorp/go-azure-helpers/lang/dates
@@ -367,7 +368,8 @@ github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/manicminer/hamilton v0.35.0
+# github.com/manicminer/hamilton v0.37.0
+## explicit
 github.com/manicminer/hamilton/auth
 github.com/manicminer/hamilton/environments
 github.com/manicminer/hamilton/errors
