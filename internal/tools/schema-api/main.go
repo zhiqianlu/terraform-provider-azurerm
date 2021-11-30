@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/hashicorp/terraform-provider-azurerm/internal/tools/schema-api/providerjson"
@@ -17,6 +18,13 @@ func main() {
 	data := providerjson.LoadData()
 
 	if userPort := os.Getenv("ARM_API_SERVER_PORT"); userPort != "" {
+		if portInt, err := strconv.Atoi(userPort); err != nil || (portInt < 1024 || portInt > 65534) {
+			if err == nil {
+				log.Fatal(fmt.Sprintf("invalid port specified, need a value between 1025 and 65534, got %q", userPort))
+			} else {
+				log.Fatal(fmt.Sprintf("invalid value for ARM_API_SERVER_PORT: %+v", err))
+			}
+		}
 		port = userPort
 	}
 

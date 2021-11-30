@@ -12,7 +12,7 @@ func resourceFromRaw(input *schema.Resource) (*ResourceJSON, error) {
 	}
 
 	result := &ResourceJSON{}
-	translatedSchema := make(map[string]SchemaJSON, 0)
+	translatedSchema := make(map[string]SchemaJSON)
 
 	for k, s := range input.Schema {
 		translatedSchema[k] = schemaFromRaw(s)
@@ -63,9 +63,13 @@ func decodeConfigMode(input schema.SchemaConfigMode) (out string) {
 
 func decodeElem(input interface{}) interface{} {
 	switch t := input.(type) {
+	case bool:
+		return t
 	case string:
 		return t
 	case int:
+		return t
+	case float32, float64:
 		return t
 	case *schema.Schema:
 		return schemaFromRaw(t)

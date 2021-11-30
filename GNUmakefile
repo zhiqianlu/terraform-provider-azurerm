@@ -135,7 +135,7 @@ teamcity-test:
 	@$(MAKE) -C .teamcity test
 
 serve-schema-api:
-	go run ./internal/tools/schema-api/main.go || true
+	-go run ./internal/tools/schema-api/main.go || true
 
 validate-examples:
 	./scripts/validate-examples.sh

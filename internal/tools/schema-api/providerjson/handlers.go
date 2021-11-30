@@ -3,6 +3,7 @@ package providerjson
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -21,12 +22,11 @@ func (p ProviderJSON) DataSourcesHandler(w http.ResponseWriter, req *http.Reques
 	ds := strings.Split(dsRaw[1], "/")[0]
 	data, err := resourceFromRaw(p.DataSourcesMap[ds])
 	if err != nil {
-		w.Write([]byte(fmt.Sprintf("Could not process schema for %q from provider: %+v", ds, err)))
-	}
-	if len(ds) > 0 {
-		if err := json.NewEncoder(w).Encode(data); err != nil {
-			w.Write([]byte(fmt.Sprintf("Marshall error: %+v", err)))
-		}
+		w.WriteHeader(http.StatusNotFound)
+		log.Println(w.Write([]byte(fmt.Sprintf("Could not process schema for %q from provider: %+v", ds, err))))
+	} else if err := json.NewEncoder(w).Encode(data); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(w.Write([]byte(fmt.Sprintf("Marshall error: %+v", err))))
 	}
 }
 
@@ -37,12 +37,11 @@ func (p ProviderJSON) ResourcesHandler(w http.ResponseWriter, req *http.Request)
 	ds := strings.Split(dsRaw[1], "/")[0]
 	data, err := resourceFromRaw(p.ResourcesMap[ds])
 	if err != nil {
-		w.Write([]byte(fmt.Sprintf("Could not process schema for %q from provider: %+v", ds, err)))
-	}
-	if len(ds) > 0 {
-		if err := json.NewEncoder(w).Encode(data); err != nil {
-			w.Write([]byte(fmt.Sprintf("Marshall error: %+v", err)))
-		}
+		w.WriteHeader(http.StatusNotFound)
+		log.Println(w.Write([]byte(fmt.Sprintf("Could not process schema for %q from provider: %+v", ds, err))))
+	} else if err := json.NewEncoder(w).Encode(data); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(w.Write([]byte(fmt.Sprintf("Marshall error: %+v", err))))
 	}
 }
 
