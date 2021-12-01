@@ -48,13 +48,13 @@ func (p ProviderJSON) ResourcesHandler(w http.ResponseWriter, req *http.Request)
 func (p *ProviderJSON) ListResources(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	if err := json.NewEncoder(w).Encode(p.Resources()); err != nil {
-		panic(err)
+		log.Println(w.Write([]byte(fmt.Sprintf("Marshall error: %+v", err))))
 	}
 }
 
 func (p *ProviderJSON) ListDataSources(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	if err := json.NewEncoder(w).Encode(p.DataSources()); err != nil {
-		panic(err)
+		log.Println(w.Write([]byte(fmt.Sprintf("Marshall error: %+v", err))))
 	}
 }
