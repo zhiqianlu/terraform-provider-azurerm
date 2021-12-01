@@ -23,7 +23,7 @@ func (p ProviderJSON) DataSourcesHandler(w http.ResponseWriter, req *http.Reques
 	data, err := resourceFromRaw(p.DataSourcesMap[ds])
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		log.Println(w.Write([]byte(fmt.Sprintf("Could not process schema for %q from provider: %+v", ds, err))))
+		log.Println(w.Write([]byte(fmt.Sprintf("[{\"error\": \"Could not process schema for %q from provider: %+v\"}]", ds, err))))
 	} else if err := json.NewEncoder(w).Encode(data); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println(w.Write([]byte(fmt.Sprintf("Marshall error: %+v", err))))
@@ -38,7 +38,7 @@ func (p ProviderJSON) ResourcesHandler(w http.ResponseWriter, req *http.Request)
 	data, err := resourceFromRaw(p.ResourcesMap[ds])
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		log.Println(w.Write([]byte(fmt.Sprintf("Could not process schema for %q from provider: %+v", ds, err))))
+		log.Println(w.Write([]byte(fmt.Sprintf("[{\"error\": \"Could not process schema for %q from provider: %+v\"}]", ds, err))))
 	} else if err := json.NewEncoder(w).Encode(data); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println(w.Write([]byte(fmt.Sprintf("Marshall error: %+v", err))))
